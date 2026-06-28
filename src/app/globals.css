@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #232323;
+  --color-mint: #bcdccb;
+  --color-mint-strong: #a9d2bb;
+  --color-mint-ink: #34553f;
+  --color-line: #e7e7e4;
+  --color-paper: #f4f4f2;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-spectral), ui-serif, Georgia, serif;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: #ffffff;
+}
+
+/* MapLibre: Fokusrahmen auf der Karte unterdrücken */
+.maplibregl-canvas:focus {
+  outline: none;
+}
