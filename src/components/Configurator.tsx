@@ -9,7 +9,7 @@ import { formatCoords } from "@/lib/format";
 import { exportPosterPng } from "@/lib/exportPoster";
 import { exportPosterPdf } from "@/lib/vectorPoster";
 import { pageDimsCm, posterRect, type FormatId, type BorderStyle } from "@/lib/posterLayout";
-import { shapeClipUnit, type ShapeId } from "@/lib/shapes";
+import { shapeClipUnit, OUTLINE, type ShapeId } from "@/lib/shapes";
 import { getTheme, buildCustomTheme, DEFAULT_CUSTOM, type CustomColors } from "@/lib/themes";
 import type { Place } from "@/lib/photon";
 
@@ -76,6 +76,7 @@ export default function Configurator() {
   const [format, setFormat] = useState<FormatId>("30x40");
   const [shape, setShape] = useState<ShapeId>("none");
   const [border, setBorder] = useState<BorderStyle>("none");
+  const [outline, setOutline] = useState<number>(OUTLINE.default);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [themeId, setThemeId] = useState("klassik");
@@ -149,6 +150,7 @@ export default function Configurator() {
         format,
         shape,
         border,
+        outline,
         title: titleText,
         coords: subtitleText,
       });
@@ -157,7 +159,7 @@ export default function Configurator() {
     } finally {
       setBusy("");
     }
-  }, [busy, style, view, orientation, format, shape, border, titleText, subtitleText, showToast]);
+  }, [busy, style, view, orientation, format, shape, border, outline, titleText, subtitleText, showToast]);
 
   const handleDownloadPdf = useCallback(async () => {
     if (busy) return;
@@ -175,6 +177,7 @@ export default function Configurator() {
         format,
         shape,
         border,
+        outline,
         theme,
       });
     } catch (e) {
@@ -186,7 +189,7 @@ export default function Configurator() {
     } finally {
       setBusy("");
     }
-  }, [busy, detail, labels, tileKey, view, orientation, titleText, subtitleText, format, shape, border, theme, showToast]);
+  }, [busy, detail, labels, tileKey, view, orientation, titleText, subtitleText, format, shape, border, outline, theme, showToast]);
 
   return (
     <div className="relative flex flex-1 overflow-hidden">
@@ -214,6 +217,8 @@ export default function Configurator() {
             setFormat={setFormat}
             shape={shape}
             setShape={setShape}
+            outline={outline}
+            setOutline={setOutline}
             border={border}
             setBorder={setBorder}
             themeId={themeId}
@@ -260,6 +265,9 @@ export default function Configurator() {
             center={place.center}
             resizeSignal={resizeSignal}
             clipUnit={clipUnit}
+            outlineMm={outline}
+            outlineColor="#1a1a1a"
+            boxMmHeight={shapeRect.rectH * 10}
             onMove={handleMove}
           />
         </PosterFrame>

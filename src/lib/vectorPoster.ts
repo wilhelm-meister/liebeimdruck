@@ -22,6 +22,7 @@ type Opts = {
   format: FormatId;
   shape: ShapeId;
   border: BorderStyle;
+  outline: number; // Konturstärke der Form in mm (0 = ohne Linie)
   theme: Theme;
 };
 
@@ -90,7 +91,7 @@ function esc(s: string): string {
  * Karten-Rechteck wie die Bildschirm-Vorschau, damit das Ergebnis identisch aussieht.
  */
 export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
-  const { detail, labels, tileKey, bounds, zoom, orientation, title, coords, format, shape, border, theme } = opts;
+  const { detail, labels, tileKey, bounds, zoom, orientation, title, coords, format, shape, border, outline, theme } = opts;
   if (!bounds) throw new Error("Kein Kartenausschnitt verfügbar – bitte kurz warten.");
 
   const PbfMod: any = await import("pbf");
@@ -247,7 +248,8 @@ export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
   // Kartenform: Karte auf die Form ausstanzen (Rechteck mit Form als Loch, weiß) + Kontur
   if (hasShape(shape)) {
     parts.push(`<path d="${maskPath(shape, rectX, rectY, rectW, rectH)}" fill="#ffffff" fill-rule="evenodd"/>`);
-    parts.push(`<path d="${shapePath(shape, rectX, rectY, rectW, rectH)}" fill="none" stroke="#1a1a1a" stroke-width="${r(0.4 * lineScale)}" stroke-linejoin="round"/>`);
+    if (outline > 0)
+      parts.push(`<path d="${shapePath(shape, rectX, rectY, rectW, rectH)}" fill="none" stroke="#1a1a1a" stroke-width="${r(outline)}" stroke-linejoin="round" stroke-linecap="round"/>`);
   }
 
   for (const L of labelsArr) {

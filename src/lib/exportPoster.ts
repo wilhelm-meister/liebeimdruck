@@ -11,6 +11,7 @@ type ExportOpts = {
   format: FormatId;
   shape: ShapeId;
   border: BorderStyle;
+  outline: number; // Konturstärke der Form in mm (0 = ohne Linie)
   title: string;
   coords: string;
 };
@@ -42,7 +43,7 @@ function triggerDownload(blob: Blob, filename: string) {
  * Ausschnitt entsprechen exakt der Vorschau (gewähltes Format + gerahmte Bounds).
  */
 export async function exportPosterPng(opts: ExportOpts): Promise<void> {
-  const { style, center, zoom, bounds, orientation, format, shape, border, title, coords } = opts;
+  const { style, center, zoom, bounds, orientation, format, shape, border, outline, title, coords } = opts;
   const maplibregl = (await import("maplibre-gl")).default;
 
   // Poster-Geometrie (Pixel) aus dem gewählten Format
@@ -112,10 +113,12 @@ export async function exportPosterPng(opts: ExportOpts): Promise<void> {
       ctx.fillStyle = "#ffffff";
       ctx.fill(new Path2D(mp), "evenodd");
       const sp = shapePath(shape, Math.round(side), Math.round(top), mapW, mapH);
-      if (sp) {
+      if (sp && outline > 0) {
+        // Konturstärke (mm) → Pixel: POSTER_W px = cm.w cm = cm.w*10 mm
         ctx.strokeStyle = "#1a1a1a";
-        ctx.lineWidth = Math.max(1, Math.round(POSTER_W * 0.0022));
+        ctx.lineWidth = Math.max(0.75, (outline * POSTER_W) / (cm.w * 10));
         ctx.lineJoin = "round";
+        ctx.lineCap = "round";
         ctx.stroke(new Path2D(sp));
       }
     }

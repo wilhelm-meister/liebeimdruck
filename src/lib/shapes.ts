@@ -3,6 +3,9 @@
 
 export type ShapeId = "none" | "heart" | "house" | "circle" | "border";
 
+/** Konturstärke (Rand) der Kartenform in mm – vom Nutzer einstellbar. 0 = ohne Linie. */
+export const OUTLINE = { min: 0, max: 1.5, step: 0.05, default: 0.2 } as const;
+
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 function heart(x0: number, y0: number, s: number): string {

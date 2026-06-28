@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { StyleSpecification } from "maplibre-gl";
@@ -10,6 +10,9 @@ type Props = {
   center: [number, number]; // [lon, lat]
   resizeSignal: string; // ändert sich, wenn sich die Canvas-Größe ändert
   clipUnit?: string; // normalisierter clip-path (Kartenform); leer = Rechteck
+  outlineMm?: number; // Konturstärke der Form in mm (0 = ohne Linie)
+  outlineColor?: string; // Konturfarbe
+  boxMmHeight?: number; // Höhe der Kartenfläche in mm (für mm→px-Umrechnung)
   onMove?: (
     center: [number, number],
     zoom: number,
@@ -17,9 +20,10 @@ type Props = {
   ) => void;
 };
 
-export default function MapCanvas({ style, center, resizeSignal, clipUnit, onMove }: Props) {
+export default function MapCanvas({ style, center, resizeSignal, clipUnit, outlineMm, outlineColor, boxMmHeight, onMove }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [boxPx, setBoxPx] = useState(0); // gemessene Pixel-Höhe der Kartenfläche
 
   // onMove über Ref, damit der Init-Effekt nicht neu laufen muss
   const onMoveRef = useRef(onMove);
@@ -63,6 +67,17 @@ export default function MapCanvas({ style, center, resizeSignal, clipUnit, onMov
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Pixel-Höhe der Kartenfläche verfolgen (für die mm→px-Umrechnung der Kontur)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setBoxPx(el.clientHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   // Stil aktualisieren (Detailstufe / Beschriftung)
   const firstStyle = useRef(true);
   useEffect(() => {
@@ -102,6 +117,13 @@ export default function MapCanvas({ style, center, resizeSignal, clipUnit, onMov
     return () => cancelAnimationFrame(id);
   }, [resizeSignal]);
 
+  // Konturstärke in Bildschirm-Pixeln (mit Sichtbarkeits-Minimum, damit auch
+  // eine Haarlinie in der Vorschau zu sehen ist).
+  const strokePx =
+    clipUnit && outlineMm && outlineMm > 0 && boxMmHeight && boxPx
+      ? Math.max(0.75, (outlineMm * boxPx) / boxMmHeight)
+      : 0;
+
   const btn =
     "grid h-8 w-8 place-items-center text-lg leading-none text-ink/70 transition hover:bg-paper";
 
@@ -125,7 +147,27 @@ export default function MapCanvas({ style, center, resizeSignal, clipUnit, onMov
             : undefined
         }
       />
-      <div className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-line bg-white shadow-sm">
+      {/* Form-Kontur (Rand) – Stroke-Overlay über der geclippten Karte */}
+      {clipUnit && strokePx > 0 && (
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          style={{ zIndex: 30 }}
+          viewBox="0 0 1 1"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          <path
+            d={clipUnit}
+            fill="none"
+            stroke={outlineColor ?? "#1a1a1a"}
+            strokeWidth={strokePx}
+            vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
+      <div className="absolute left-3 top-3 z-40 flex flex-col overflow-hidden rounded-md border border-line bg-white shadow-sm">
         <button aria-label="Hineinzoomen" className={btn} onClick={() => mapRef.current?.zoomIn()}>
           +
         </button>

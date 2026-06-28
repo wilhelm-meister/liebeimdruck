@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import LocationSearch from "./LocationSearch";
 import type { Detail, Labels } from "@/lib/mapStyle";
 import { FORMATS, getFormat, type FormatId, type BorderStyle } from "@/lib/posterLayout";
-import type { ShapeId } from "@/lib/shapes";
+import { hasShape, OUTLINE, type ShapeId } from "@/lib/shapes";
 import { THEMES, type Theme, type CustomColors } from "@/lib/themes";
 import type { Place } from "@/lib/photon";
 
@@ -32,6 +32,8 @@ type Props = {
   setFormat: (f: FormatId) => void;
   shape: ShapeId;
   setShape: (s: ShapeId) => void;
+  outline: number;
+  setOutline: (n: number) => void;
   border: BorderStyle;
   setBorder: (b: BorderStyle) => void;
   themeId: string;
@@ -255,6 +257,8 @@ export default function Sidebar({
   setFormat,
   shape,
   setShape,
+  outline,
+  setOutline,
   border,
   setBorder,
   themeId,
@@ -352,6 +356,31 @@ export default function Sidebar({
             <OptionCard active={shape === "circle"} onClick={() => setShape("circle")} icon={<IconShapeCircle />} label="Kreis" />
             <OptionCard active={false} onClick={() => {}} icon={<IconShapeBorder />} label="Grenzen" disabled badge="bald" />
           </div>
+          {hasShape(shape) && (
+            <div className="mt-3">
+              <div className="mb-1 flex items-center justify-between text-[12px] text-ink/60">
+                <span>Konturstärke</span>
+                <span className="tabular-nums text-ink/80">
+                  {outline <= 0 ? "ohne" : `${outline.toFixed(2).replace(".", ",")} mm`}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={OUTLINE.min}
+                max={OUTLINE.max}
+                step={OUTLINE.step}
+                value={outline}
+                onChange={(e) => setOutline(parseFloat(e.target.value))}
+                aria-label="Konturstärke"
+                className="w-full cursor-pointer"
+                style={{ accentColor: "var(--color-mint-ink)" }}
+              />
+              <div className="flex justify-between text-[10px] text-ink/35">
+                <span>Haarlinie</span>
+                <span>kräftig</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Rahmen */}
