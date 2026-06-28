@@ -9,6 +9,7 @@ type Props = {
   style: StyleSpecification;
   center: [number, number]; // [lon, lat]
   resizeSignal: string; // ändert sich, wenn sich die Canvas-Größe ändert
+  clipUnit?: string; // normalisierter clip-path (Kartenform); leer = Rechteck
   onMove?: (
     center: [number, number],
     zoom: number,
@@ -16,7 +17,7 @@ type Props = {
   ) => void;
 };
 
-export default function MapCanvas({ style, center, resizeSignal, onMove }: Props) {
+export default function MapCanvas({ style, center, resizeSignal, clipUnit, onMove }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
 
@@ -106,7 +107,20 @@ export default function MapCanvas({ style, center, resizeSignal, onMove }: Props
 
   return (
     <div className="absolute inset-0">
-      <div ref={containerRef} className="h-full w-full" />
+      {clipUnit && (
+        <svg width="0" height="0" className="absolute" aria-hidden>
+          <defs>
+            <clipPath id="posterShapeClip" clipPathUnits="objectBoundingBox">
+              <path d={clipUnit} />
+            </clipPath>
+          </defs>
+        </svg>
+      )}
+      <div
+        ref={containerRef}
+        className="h-full w-full"
+        style={clipUnit ? { clipPath: "url(#posterShapeClip)", WebkitClipPath: "url(#posterShapeClip)" } : undefined}
+      />
       <div className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-line bg-white shadow-sm">
         <button aria-label="Hineinzoomen" className={btn} onClick={() => mapRef.current?.zoomIn()}>
           +

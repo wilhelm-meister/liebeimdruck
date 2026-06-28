@@ -1,29 +1,22 @@
 import type { ReactNode } from "react";
 import { LAYOUT, pageDimsCm, posterRect, type FormatId, type Orientation } from "@/lib/posterLayout";
-import { hasShape, maskPath, type ShapeId } from "@/lib/shapes";
 
 type Props = {
   title: string;
   coords: string;
   format: FormatId;
   orientation: Orientation;
-  shape: ShapeId;
   enlarged?: boolean;
-  children: ReactNode; // die Karte (MapCanvas)
+  children: ReactNode; // die Karte (MapCanvas) – inkl. Kartenform-Maske
 };
 
-export default function PosterFrame({ title, coords, format, orientation, shape, enlarged, children }: Props) {
+export default function PosterFrame({ title, coords, format, orientation, enlarged, children }: Props) {
   const { w, h } = pageDimsCm(format, orientation);
   const { rectW, rectH } = posterRect(w, h);
 
   const maxVH = enlarged ? 90 : 82;
   const maxVW = enlarged ? 92 : 60;
   const ratioHW = (h / w).toFixed(4); // Höhe / Breite
-
-  // Maske für die Kartenform (gleiches Seitenverhältnis wie die Kartenfläche)
-  const vbW = 1000;
-  const vbH = Math.round((1000 * rectH) / rectW);
-  const mask = hasShape(shape) ? maskPath(shape, 0, 0, vbW, vbH) : "";
 
   return (
     <div
@@ -44,16 +37,6 @@ export default function PosterFrame({ title, coords, format, orientation, shape,
         {/* Kartenfläche – exakt das Seitenverhältnis, das auch ins PDF/PNG geht */}
         <div className="relative w-full overflow-hidden" style={{ aspectRatio: `${rectW} / ${rectH}` }}>
           {children}
-          {mask && (
-            <svg
-              className="pointer-events-none absolute inset-0 h-full w-full"
-              style={{ zIndex: 5 }}
-              viewBox={`0 0 ${vbW} ${vbH}`}
-              preserveAspectRatio="none"
-            >
-              <path d={mask} fill="#ffffff" fillRule="evenodd" />
-            </svg>
-          )}
         </div>
 
         {/* Titelband füllt den restlichen Platz (= Bandhöhe aus dem Layout) */}

@@ -57,3 +57,43 @@ export function maskPath(shape: ShapeId, x0: number, y0: number, W: number, H: n
 export function hasShape(shape: ShapeId): boolean {
   return shape === "heart" || shape === "house" || shape === "circle";
 }
+
+/**
+ * Normalisierter Pfad (0..1) für CSS `clip-path` mit clipPathUnits="objectBoundingBox".
+ * Damit wird die Karte direkt auf die Form gestanzt (robuster als ein Overlay über
+ * der WebGL-Canvas). `aspect` = Breite/Höhe der Kartenfläche; die Form wird als
+ * größtes zentriertes Quadrat eingepasst (unverzerrt).
+ */
+export function shapeClipUnit(shape: ShapeId, aspect: number): string {
+  if (!hasShape(shape)) return "";
+  const a = aspect;
+  const fx = a <= 1 ? (u: number) => u : (u: number) => 0.5 + (u - 0.5) / a;
+  const fy = a <= 1 ? (v: number) => 0.5 + (v - 0.5) * a : (v: number) => v;
+  const round = (v: number) => Math.round(v * 100000) / 100000;
+  const P = (u: number, v: number) => `${round(fx(u))} ${round(fy(v))}`;
+
+  if (shape === "circle") {
+    const cx = 0.5, cy = 0.5, rad = 0.5, o = 0.5523 * rad;
+    return (
+      `M${P(cx - rad, cy)} C${P(cx - rad, cy - o)} ${P(cx - o, cy - rad)} ${P(cx, cy - rad)} ` +
+      `C${P(cx + o, cy - rad)} ${P(cx + rad, cy - o)} ${P(cx + rad, cy)} ` +
+      `C${P(cx + rad, cy + o)} ${P(cx + o, cy + rad)} ${P(cx, cy + rad)} ` +
+      `C${P(cx - o, cy + rad)} ${P(cx - rad, cy + o)} ${P(cx - rad, cy)} Z`
+    );
+  }
+  if (shape === "heart") {
+    return (
+      `M${P(0.5, 0.98)} C${P(0.5, 0.98)} ${P(0.02, 0.62)} ${P(0.02, 0.3)} ` +
+      `C${P(0.02, 0.1)} ${P(0.2, 0.02)} ${P(0.32, 0.02)} ` +
+      `C${P(0.43, 0.02)} ${P(0.5, 0.13)} ${P(0.5, 0.2)} ` +
+      `C${P(0.5, 0.13)} ${P(0.57, 0.02)} ${P(0.68, 0.02)} ` +
+      `C${P(0.8, 0.02)} ${P(0.98, 0.1)} ${P(0.98, 0.3)} ` +
+      `C${P(0.98, 0.62)} ${P(0.5, 0.98)} ${P(0.5, 0.98)} Z`
+    );
+  }
+  // house
+  return (
+    `M${P(0.5, 0.02)} L${P(0.98, 0.42)} L${P(0.86, 0.42)} L${P(0.86, 0.98)} ` +
+    `L${P(0.14, 0.98)} L${P(0.14, 0.42)} L${P(0.02, 0.42)} Z`
+  );
+}

@@ -8,8 +8,8 @@ import { buildMapStyle, type Detail, type Labels } from "@/lib/mapStyle";
 import { formatCoords } from "@/lib/format";
 import { exportPosterPng } from "@/lib/exportPoster";
 import { exportPosterPdf } from "@/lib/vectorPoster";
-import type { FormatId } from "@/lib/posterLayout";
-import type { ShapeId } from "@/lib/shapes";
+import { pageDimsCm, posterRect, type FormatId } from "@/lib/posterLayout";
+import { shapeClipUnit, type ShapeId } from "@/lib/shapes";
 import { getTheme, buildCustomTheme, DEFAULT_CUSTOM, type CustomColors } from "@/lib/themes";
 import type { Place } from "@/lib/photon";
 
@@ -125,6 +125,11 @@ export default function Configurator() {
   const coords = formatCoords(view.center[1], view.center[0]);
   const resizeSignal = `${orientation}-${preview}-${format}`;
 
+  // Kartenform: Karte direkt per CSS clip-path stanzen (robust über der WebGL-Canvas)
+  const shapeDims = pageDimsCm(format, orientation);
+  const shapeRect = posterRect(shapeDims.w, shapeDims.h);
+  const clipUnit = shapeClipUnit(shape, shapeRect.rectW / shapeRect.rectH);
+
   const handleDownloadPng = useCallback(async () => {
     if (busy) return;
     setBusy("png");
@@ -233,8 +238,14 @@ export default function Configurator() {
           </button>
         )}
 
-        <PosterFrame title={place.name} coords={coords} format={format} orientation={orientation} shape={shape} enlarged={preview}>
-          <MapCanvas style={style} center={place.center} resizeSignal={resizeSignal} onMove={handleMove} />
+        <PosterFrame title={place.name} coords={coords} format={format} orientation={orientation} enlarged={preview}>
+          <MapCanvas
+            style={style}
+            center={place.center}
+            resizeSignal={resizeSignal}
+            clipUnit={clipUnit}
+            onMove={handleMove}
+          />
         </PosterFrame>
 
         <p className="pointer-events-none absolute bottom-3 right-4 text-[10px] text-ink/35">
