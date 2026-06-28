@@ -9,6 +9,8 @@ import { formatCoords } from "@/lib/format";
 import { exportPosterPng } from "@/lib/exportPoster";
 import { exportPosterPdf } from "@/lib/vectorPoster";
 import type { FormatId } from "@/lib/posterLayout";
+import type { ShapeId } from "@/lib/shapes";
+import { getTheme, buildCustomTheme, DEFAULT_CUSTOM, type CustomColors } from "@/lib/themes";
 import type { Place } from "@/lib/photon";
 
 // MapLibre nur im Browser laden (kein SSR)
@@ -72,13 +74,20 @@ export default function Configurator() {
   const [preview, setPreview] = useState(false);
   const [busy, setBusy] = useState<"" | "png" | "pdf">("");
   const [format, setFormat] = useState<FormatId>("30x40");
+  const [shape, setShape] = useState<ShapeId>("none");
+  const [themeId, setThemeId] = useState("klassik");
+  const [customColors, setCustomColors] = useState<CustomColors>(DEFAULT_CUSTOM);
+  const theme = useMemo(
+    () => (themeId === "custom" ? buildCustomTheme(customColors) : getTheme(themeId)),
+    [themeId, customColors],
+  );
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const tileKey = process.env.NEXT_PUBLIC_MAPTILER_KEY || undefined;
   const style = useMemo(
-    () => buildMapStyle({ detail, labels, tileKey }),
-    [detail, labels, tileKey],
+    () => buildMapStyle({ detail, labels, theme, tileKey }),
+    [detail, labels, theme, tileKey],
   );
 
   const showToast = useCallback((msg: string) => {
@@ -99,6 +108,20 @@ export default function Configurator() {
     [],
   );
 
+  const handleCustomChange = useCallback((key: keyof CustomColors, value: string) => {
+    setCustomColors((c) => ({ ...c, [key]: value }));
+    setThemeId("custom");
+  }, []);
+
+  const handleCustomOpen = useCallback(() => {
+    if (themeId !== "custom") {
+      // aktuelle Theme-Farben als Startpunkt übernehmen
+      const t = getTheme(themeId);
+      setCustomColors({ bg: t.bg, water: t.water, road: t.roadMajor, building: t.building, label: t.label });
+      setThemeId("custom");
+    }
+  }, [themeId]);
+
   const coords = formatCoords(view.center[1], view.center[0]);
   const resizeSignal = `${orientation}-${preview}-${format}`;
 
@@ -113,6 +136,7 @@ export default function Configurator() {
         bounds: view.bounds,
         orientation,
         format,
+        shape,
         title: place.name,
         coords,
       });
@@ -121,7 +145,7 @@ export default function Configurator() {
     } finally {
       setBusy("");
     }
-  }, [busy, style, view, orientation, format, place.name, coords, showToast]);
+  }, [busy, style, view, orientation, format, shape, place.name, coords, showToast]);
 
   const handleDownloadPdf = useCallback(async () => {
     if (busy) return;
@@ -137,6 +161,8 @@ export default function Configurator() {
         title: place.name,
         coords,
         format,
+        shape,
+        theme,
       });
     } catch (e) {
       showToast(
@@ -147,7 +173,7 @@ export default function Configurator() {
     } finally {
       setBusy("");
     }
-  }, [busy, detail, labels, tileKey, view, orientation, place.name, coords, format, showToast]);
+  }, [busy, detail, labels, tileKey, view, orientation, place.name, coords, format, shape, theme, showToast]);
 
   return (
     <div className="relative flex flex-1 overflow-hidden">
@@ -167,6 +193,13 @@ export default function Configurator() {
             busy={busy}
             format={format}
             setFormat={setFormat}
+            shape={shape}
+            setShape={setShape}
+            themeId={themeId}
+            setThemeId={setThemeId}
+            customColors={customColors}
+            onCustomChange={handleCustomChange}
+            onCustomOpen={handleCustomOpen}
             onStub={() =>
               showToast("Bestellfunktion folgt – aktuell ist nur der Konfigurator aktiv.")
             }
@@ -200,7 +233,7 @@ export default function Configurator() {
           </button>
         )}
 
-        <PosterFrame title={place.name} coords={coords} format={format} orientation={orientation} enlarged={preview}>
+        <PosterFrame title={place.name} coords={coords} format={format} orientation={orientation} shape={shape} enlarged={preview}>
           <MapCanvas style={style} center={place.center} resizeSignal={resizeSignal} onMove={handleMove} />
         </PosterFrame>
 

@@ -1,4 +1,5 @@
 import type { StyleSpecification, LayerSpecification } from "maplibre-gl";
+import type { Theme } from "./themes";
 
 export type Detail = "roads" | "roads_buildings" | "buildings";
 export type Labels = "none" | "places";
@@ -6,11 +7,9 @@ export type Labels = "none" | "places";
 type BuildOpts = {
   detail: Detail;
   labels: Labels;
+  theme: Theme;
   tileKey?: string;
 };
-
-const INK = "#1a1a1a";
-const WATER = "#a9c9e8";
 
 /** Quelle der Vektor-Kacheln (gleich für Bildschirm-Stil und PDF-Export). */
 export function tileSourceUrl(tileKey?: string): string {
@@ -27,7 +26,7 @@ export function tileSourceUrl(tileKey?: string): string {
  *  - ohne Key          -> OpenFreeMap (kostenlos, gleiches Schema)
  * Beides basiert auf OpenStreetMap.
  */
-export function buildMapStyle({ detail, labels, tileKey }: BuildOpts): StyleSpecification {
+export function buildMapStyle({ detail, labels, theme, tileKey }: BuildOpts): StyleSpecification {
   const tilesUrl = tileSourceUrl(tileKey);
   const glyphs = tileKey
     ? `https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key=${tileKey}`
@@ -35,20 +34,20 @@ export function buildMapStyle({ detail, labels, tileKey }: BuildOpts): StyleSpec
 
   const showRoads = detail === "roads" || detail === "roads_buildings";
   const showBuildings = detail === "roads_buildings" || detail === "buildings";
-  const buildingColor = detail === "buildings" ? "#c9c9c9" : "#ececec";
+  const buildingColor = detail === "buildings" ? theme.buildingStrong : theme.building;
 
   const layers: LayerSpecification[] = [
     {
       id: "background",
       type: "background",
-      paint: { "background-color": "#ffffff" },
+      paint: { "background-color": theme.bg },
     },
     {
       id: "water",
       type: "fill",
       source: "openmaptiles",
       "source-layer": "water",
-      paint: { "fill-color": WATER, "fill-antialias": true },
+      paint: { "fill-color": theme.water, "fill-antialias": true },
     },
     {
       id: "waterway",
@@ -56,7 +55,7 @@ export function buildMapStyle({ detail, labels, tileKey }: BuildOpts): StyleSpec
       source: "openmaptiles",
       "source-layer": "waterway",
       paint: {
-        "line-color": WATER,
+        "line-color": theme.water,
         "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.6, 14, 1.6, 17, 3],
       },
     },
@@ -71,7 +70,7 @@ export function buildMapStyle({ detail, labels, tileKey }: BuildOpts): StyleSpec
       minzoom: 13,
       paint: {
         "fill-color": buildingColor,
-        "fill-outline-color": "#d8d8d8",
+        "fill-outline-color": theme.buildingOutline,
         "fill-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0, 14, 0.9],
       },
     });
@@ -94,7 +93,7 @@ export function buildMapStyle({ detail, labels, tileKey }: BuildOpts): StyleSpec
         ],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#3a3a3a",
+          "line-color": theme.roadMinor,
           "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.25, 14, 0.7, 16, 1.6, 18, 3],
         },
       },
@@ -106,7 +105,7 @@ export function buildMapStyle({ detail, labels, tileKey }: BuildOpts): StyleSpec
         filter: ["match", ["get", "class"], ["secondary", "tertiary"], true, false],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": "#202020",
+          "line-color": theme.roadMedium,
           "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.4, 13, 1.4, 15, 2.6, 17, 5],
         },
       },
@@ -118,7 +117,7 @@ export function buildMapStyle({ detail, labels, tileKey }: BuildOpts): StyleSpec
         filter: ["match", ["get", "class"], ["motorway", "trunk", "primary"], true, false],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": INK,
+          "line-color": theme.roadMajor,
           "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.6, 11, 1.4, 13, 2.6, 15, 4.5, 17, 8],
         },
       },
@@ -146,8 +145,8 @@ export function buildMapStyle({ detail, labels, tileKey }: BuildOpts): StyleSpec
         "text-max-width": 8,
       },
       paint: {
-        "text-color": "#2a2a2a",
-        "text-halo-color": "#ffffff",
+        "text-color": theme.label,
+        "text-halo-color": theme.labelHalo,
         "text-halo-width": 1.4,
       },
     });

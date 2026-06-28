@@ -5,6 +5,8 @@ import {
   type FormatId,
   type Orientation,
 } from "./posterLayout";
+import { hasShape, maskPath, type ShapeId } from "./shapes";
+import type { Theme } from "./themes";
 
 type Opts = {
   detail: Detail;
@@ -16,15 +18,16 @@ type Opts = {
   title: string;
   coords: string;
   format: FormatId;
+  shape: ShapeId;
+  theme: Theme;
 };
 
-const WATER = "#a9c9e8";
-// Straßen-Hierarchie wie am Bildschirm: kräftige Hauptstraßen, helle dünne Nebenstraßen.
+// Straßen-Hierarchie wie am Bildschirm (Farben kommen aus dem Theme).
 // „Lärm"-Klassen (service/track/path/pedestrian/pier) werden bewusst weggelassen.
 const ROAD = [
-  { classes: ["minor", "living_street"], color: "#9a9a9a", w: 0.14 },
-  { classes: ["secondary", "tertiary"], color: "#3a3a3a", w: 0.3 },
-  { classes: ["motorway", "trunk", "primary"], color: "#1a1a1a", w: 0.5 },
+  { classes: ["minor", "living_street"], w: 0.14 },
+  { classes: ["secondary", "tertiary"], w: 0.3 },
+  { classes: ["motorway", "trunk", "primary"], w: 0.5 },
 ];
 const PLACE_SIZE: Record<string, number> = {
   city: 0.013,
@@ -84,7 +87,7 @@ function esc(s: string): string {
  * Karten-Rechteck wie die Bildschirm-Vorschau, damit das Ergebnis identisch aussieht.
  */
 export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
-  const { detail, labels, tileKey, bounds, zoom, orientation, title, coords, format } = opts;
+  const { detail, labels, tileKey, bounds, zoom, orientation, title, coords, format, shape, theme } = opts;
   if (!bounds) throw new Error("Kein Kartenausschnitt verfügbar – bitte kurz warten.");
 
   const PbfMod: any = await import("pbf");
@@ -132,7 +135,8 @@ export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
   const r = (v: number) => Math.round(v * 10) / 10;
   const showRoads = detail === "roads" || detail === "roads_buildings";
   const showBuildings = detail === "roads_buildings" || detail === "buildings";
-  const buildingColor = detail === "buildings" ? "#c9c9c9" : "#ececec";
+  const buildingColor = detail === "buildings" ? theme.buildingStrong : theme.building;
+  const roadColors = [theme.roadMinor, theme.roadMedium, theme.roadMajor];
 
   let waterD = "", waterwayD = "", buildingD = "";
   const roadD = ["", "", ""];
@@ -224,10 +228,12 @@ export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
   const parts: string[] = [];
   parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${r(pageW)} ${r(pageH)}">`);
   parts.push(`<rect x="0" y="0" width="${r(pageW)}" height="${r(pageH)}" fill="#ffffff"/>`);
-  if (waterD) parts.push(`<path d="${waterD}" fill="${WATER}" fill-rule="evenodd"/>`);
-  if (waterwayD) parts.push(`<path d="${waterwayD}" fill="none" stroke="${WATER}" stroke-width="${r(0.28 * lineScale)}" stroke-linecap="round" stroke-linejoin="round"/>`);
+  // Kartenhintergrund (Theme) nur im Kartenbereich – Ränder bleiben weiß
+  parts.push(`<rect x="${r(rectX)}" y="${r(rectY)}" width="${r(rectW)}" height="${r(rectH)}" fill="${theme.bg}"/>`);
+  if (waterD) parts.push(`<path d="${waterD}" fill="${theme.water}" fill-rule="evenodd"/>`);
+  if (waterwayD) parts.push(`<path d="${waterwayD}" fill="none" stroke="${theme.water}" stroke-width="${r(0.28 * lineScale)}" stroke-linecap="round" stroke-linejoin="round"/>`);
   if (showBuildings && buildingD) parts.push(`<path d="${buildingD}" fill="${buildingColor}" fill-rule="evenodd"/>`);
-  if (showRoads) roadD.forEach((d, gi) => { if (d) parts.push(`<path d="${d}" fill="none" stroke="${ROAD[gi].color}" stroke-width="${r(ROAD[gi].w * lineScale)}" stroke-linecap="round" stroke-linejoin="round"/>`); });
+  if (showRoads) roadD.forEach((d, gi) => { if (d) parts.push(`<path d="${d}" fill="none" stroke="${roadColors[gi]}" stroke-width="${r(ROAD[gi].w * lineScale)}" stroke-linecap="round" stroke-linejoin="round"/>`); });
 
   // weiße Ränder maskieren Überstand
   parts.push(`<rect x="0" y="0" width="${r(pageW)}" height="${r(rectY)}" fill="#ffffff"/>`);
@@ -235,8 +241,13 @@ export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
   parts.push(`<rect x="0" y="${r(rectY)}" width="${r(rectX)}" height="${r(rectH)}" fill="#ffffff"/>`);
   parts.push(`<rect x="${r(rectX + rectW)}" y="${r(rectY)}" width="${r(pageW - rectX - rectW)}" height="${r(rectH)}" fill="#ffffff"/>`);
 
+  // Kartenform: Karte auf die Form ausstanzen (Rechteck mit Form als Loch, weiß)
+  if (hasShape(shape)) {
+    parts.push(`<path d="${maskPath(shape, rectX, rectY, rectW, rectH)}" fill="#ffffff" fill-rule="evenodd"/>`);
+  }
+
   for (const L of labelsArr) {
-    parts.push(`<text x="${r(L.X)}" y="${r(L.Y + L.size * 0.35)}" font-family="helvetica" font-size="${r(L.size)}" fill="#2a2a2a" text-anchor="middle">${esc(L.name)}</text>`);
+    parts.push(`<text x="${r(L.X)}" y="${r(L.Y + L.size * 0.35)}" font-family="helvetica" font-size="${r(L.size)}" fill="${theme.label}" text-anchor="middle">${esc(L.name)}</text>`);
   }
 
   const titleSize = pageW * 0.05;

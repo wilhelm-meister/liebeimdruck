@@ -1,5 +1,6 @@
 import type { StyleSpecification } from "maplibre-gl";
 import { pageDimsCm, posterRect, type FormatId, type Orientation } from "./posterLayout";
+import { maskPath, type ShapeId } from "./shapes";
 
 type ExportOpts = {
   style: StyleSpecification;
@@ -8,6 +9,7 @@ type ExportOpts = {
   bounds?: [number, number, number, number] | null; // [west, south, east, north]
   orientation: Orientation;
   format: FormatId;
+  shape: ShapeId;
   title: string;
   coords: string;
 };
@@ -39,7 +41,7 @@ function triggerDownload(blob: Blob, filename: string) {
  * Ausschnitt entsprechen exakt der Vorschau (gewähltes Format + gerahmte Bounds).
  */
 export async function exportPosterPng(opts: ExportOpts): Promise<void> {
-  const { style, center, zoom, bounds, orientation, format, title, coords } = opts;
+  const { style, center, zoom, bounds, orientation, format, shape, title, coords } = opts;
   const maplibregl = (await import("maplibre-gl")).default;
 
   // Poster-Geometrie (Pixel) aus dem gewählten Format
@@ -102,6 +104,13 @@ export async function exportPosterPng(opts: ExportOpts): Promise<void> {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, POSTER_W, POSTER_H);
     ctx.drawImage(mapCanvas, Math.round(side), Math.round(top), mapW, mapH);
+
+    // Kartenform: alles außerhalb der Form weiß übermalen
+    const mp = maskPath(shape, Math.round(side), Math.round(top), mapW, mapH);
+    if (mp) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fill(new Path2D(mp), "evenodd");
+    }
 
     const serif = fontFamilyOf(".poster-title", "Georgia, 'Times New Roman', serif");
     const sans = fontFamilyOf(".poster-coords", "system-ui, sans-serif");

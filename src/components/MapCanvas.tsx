@@ -107,7 +107,7 @@ export default function MapCanvas({ style, center, resizeSignal, onMove }: Props
   return (
     <div className="absolute inset-0">
       <div ref={containerRef} className="h-full w-full" />
-      <div className="absolute left-3 top-3 flex flex-col overflow-hidden rounded-md border border-line bg-white shadow-sm">
+      <div className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-line bg-white shadow-sm">
         <button aria-label="Hineinzoomen" className={btn} onClick={() => mapRef.current?.zoomIn()}>
           +
         </button>

@@ -1,9 +1,11 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import LocationSearch from "./LocationSearch";
 import type { Detail, Labels } from "@/lib/mapStyle";
 import { FORMATS, getFormat, type FormatId } from "@/lib/posterLayout";
+import type { ShapeId } from "@/lib/shapes";
+import { THEMES, type Theme, type CustomColors } from "@/lib/themes";
 import type { Place } from "@/lib/photon";
 
 type Orientation = "portrait" | "landscape";
@@ -22,31 +24,78 @@ type Props = {
   busy: "" | "png" | "pdf";
   format: FormatId;
   setFormat: (f: FormatId) => void;
+  shape: ShapeId;
+  setShape: (s: ShapeId) => void;
+  themeId: string;
+  setThemeId: (id: string) => void;
+  customColors: CustomColors;
+  onCustomChange: (key: keyof CustomColors, value: string) => void;
+  onCustomOpen: () => void;
   onStub: () => void;
 };
+
+const CUSTOM_ROWS: { key: keyof CustomColors; label: string }[] = [
+  { key: "bg", label: "Land" },
+  { key: "water", label: "Wasser" },
+  { key: "road", label: "Straßen" },
+  { key: "building", label: "Gebäude" },
+  { key: "label", label: "Beschriftung" },
+];
+
+function ThemeSwatch({ theme, active, onClick }: { theme: Theme; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title={theme.name}
+      className={`h-10 w-10 overflow-hidden rounded-full transition ${
+        active ? "ring-2 ring-mint-strong ring-offset-2" : "ring-1 ring-line hover:ring-ink/40"
+      }`}
+    >
+      <svg viewBox="0 0 40 40" className="h-full w-full">
+        <rect width="40" height="40" fill={theme.bg} />
+        <path d="M-2 27 L42 31" stroke={theme.water} strokeWidth="8" fill="none" />
+        <path d="M12 -2 L21 42" stroke={theme.roadMajor} strokeWidth="2.6" fill="none" />
+        <path d="M-2 15 L42 11" stroke={theme.roadMajor} strokeWidth="2.6" fill="none" />
+        <path d="M-2 22 L42 24" stroke={theme.roadMinor} strokeWidth="1" fill="none" />
+      </svg>
+    </button>
+  );
+}
 
 function OptionCard({
   active,
   onClick,
   icon,
   label,
+  disabled,
+  badge,
 }: {
   active: boolean;
   onClick: () => void;
   icon: ReactNode;
   label: string;
+  disabled?: boolean;
+  badge?: string;
 }) {
   return (
     <button
-      onClick={onClick}
-      className={`flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-center text-[12px] leading-tight transition ${
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={`relative flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border px-2 py-3 text-center text-[12px] leading-tight transition ${
         active
           ? "border-mint-strong bg-mint text-mint-ink"
-          : "border-line bg-white text-ink/70 hover:border-ink/30"
+          : disabled
+            ? "cursor-not-allowed border-line bg-white text-ink/30"
+            : "border-line bg-white text-ink/70 hover:border-ink/30"
       }`}
     >
-      <span className={active ? "text-mint-ink" : "text-ink/60"}>{icon}</span>
+      <span className={active ? "text-mint-ink" : disabled ? "text-ink/25" : "text-ink/60"}>{icon}</span>
       {label}
+      {badge && (
+        <span className="absolute -top-1.5 right-1 rounded-full bg-ink/10 px-1.5 py-0.5 text-[8px] font-medium text-ink/50">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -102,6 +151,32 @@ const IconLandscape = () => (
     <rect x="3" y="7" width="18" height="10" rx="1.2" />
   </svg>
 );
+// — Kartenform-Icons —
+const IconShapeNone = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+    <rect x="4" y="4" width="16" height="16" rx="1.5" />
+  </svg>
+);
+const IconShapeHeart = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 21s-7.5-4.9-9.3-9.2C1.4 8.5 3.3 5 7 5c2.1 0 3.6 1.3 5 3 1.4-1.7 2.9-3 5-3 3.7 0 5.6 3.5 4.3 6.8C19.5 16.1 12 21 12 21Z" />
+  </svg>
+);
+const IconShapeHouse = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 3 1.5 11h3V21h6v-6h3v6h6V11h3L12 3Z" />
+  </svg>
+);
+const IconShapeCircle = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+    <circle cx="12" cy="12" r="9" />
+  </svg>
+);
+const IconShapeBorder = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+    <path d="M5 6 9 4l5 2 5-1v9l-4 4-6-2-4 2z" />
+  </svg>
+);
 const IconEye = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
     <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
@@ -147,9 +222,19 @@ export default function Sidebar({
   busy,
   format,
   setFormat,
+  shape,
+  setShape,
+  themeId,
+  setThemeId,
+  customColors,
+  onCustomChange,
+  onCustomOpen,
   onStub,
 }: Props) {
   const fmt = getFormat(format);
+  const isCustom = themeId === "custom";
+  const themeName = isCustom ? "Eigene Farben" : THEMES.find((t) => t.id === themeId)?.name ?? "";
+  const [customOpen, setCustomOpen] = useState(false);
   return (
     <aside className="flex h-full w-[360px] shrink-0 flex-col border-r border-line bg-white">
       <div className="flex-1 overflow-y-auto px-5 py-5">
@@ -196,6 +281,18 @@ export default function Sidebar({
           </div>
         </div>
 
+        {/* Kartenform */}
+        <div className="mt-7">
+          <SectionTitle>Kartenform</SectionTitle>
+          <div className="flex gap-1.5">
+            <OptionCard active={shape === "none"} onClick={() => setShape("none")} icon={<IconShapeNone />} label="Ohne" />
+            <OptionCard active={shape === "heart"} onClick={() => setShape("heart")} icon={<IconShapeHeart />} label="Herz" />
+            <OptionCard active={shape === "house"} onClick={() => setShape("house")} icon={<IconShapeHouse />} label="Haus" />
+            <OptionCard active={shape === "circle"} onClick={() => setShape("circle")} icon={<IconShapeCircle />} label="Kreis" />
+            <OptionCard active={false} onClick={() => {}} icon={<IconShapeBorder />} label="Grenzen" disabled badge="bald" />
+          </div>
+        </div>
+
         {/* Format / Größe */}
         <div className="mt-7">
           <SectionTitle>Format</SectionTitle>
@@ -221,6 +318,50 @@ export default function Sidebar({
           <p className="mt-2 text-center text-[11px] text-ink/45">
             Bestimmt Vorschau, PNG und PDF · Vektor-PDF skaliert verlustfrei
           </p>
+        </div>
+
+        {/* Farben */}
+        <div className="mt-7">
+          <SectionTitle>Farben</SectionTitle>
+          <div className="grid grid-cols-5 justify-items-center gap-2.5">
+            {THEMES.map((t) => (
+              <ThemeSwatch key={t.id} theme={t} active={themeId === t.id} onClick={() => setThemeId(t.id)} />
+            ))}
+          </div>
+          <p className="mt-2 text-center text-[11px] text-ink/55">{themeName}</p>
+
+          <button
+            onClick={() => {
+              onCustomOpen();
+              setCustomOpen((o) => !o);
+            }}
+            className={`mt-3 w-full rounded-md border py-2 text-sm transition ${
+              isCustom
+                ? "border-mint-strong bg-mint text-mint-ink"
+                : "border-line text-ink/70 hover:border-ink/30"
+            }`}
+          >
+            Eigene Farben
+          </button>
+
+          {customOpen && (
+            <div className="mt-2 space-y-2 rounded-lg border border-line p-3">
+              {CUSTOM_ROWS.map((row) => (
+                <label
+                  key={row.key}
+                  className="flex cursor-pointer items-center justify-between text-[13px] text-ink/75"
+                >
+                  {row.label}
+                  <input
+                    type="color"
+                    value={customColors[row.key]}
+                    onChange={(e) => onCustomChange(row.key, e.target.value)}
+                    className="h-7 w-12 cursor-pointer rounded border border-line bg-white p-0.5"
+                  />
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
