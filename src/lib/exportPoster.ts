@@ -1,5 +1,5 @@
 import type { StyleSpecification } from "maplibre-gl";
-import { pageDimsCm, posterRect, type FormatId, type Orientation } from "./posterLayout";
+import { pageDimsCm, posterRect, borderRects, type FormatId, type Orientation, type BorderStyle } from "./posterLayout";
 import { maskPath, shapePath, type ShapeId } from "./shapes";
 
 type ExportOpts = {
@@ -10,6 +10,7 @@ type ExportOpts = {
   orientation: Orientation;
   format: FormatId;
   shape: ShapeId;
+  border: BorderStyle;
   title: string;
   coords: string;
 };
@@ -41,7 +42,7 @@ function triggerDownload(blob: Blob, filename: string) {
  * Ausschnitt entsprechen exakt der Vorschau (gewähltes Format + gerahmte Bounds).
  */
 export async function exportPosterPng(opts: ExportOpts): Promise<void> {
-  const { style, center, zoom, bounds, orientation, format, shape, title, coords } = opts;
+  const { style, center, zoom, bounds, orientation, format, shape, border, title, coords } = opts;
   const maplibregl = (await import("maplibre-gl")).default;
 
   // Poster-Geometrie (Pixel) aus dem gewählten Format
@@ -150,6 +151,14 @@ export async function exportPosterPng(opts: ExportOpts): Promise<void> {
     ctx.fillText(`${cm.w} × ${cm.h} cm`, Math.round(side), footY);
     ctx.textAlign = "right";
     ctx.fillText("© OpenStreetMap-Mitwirkende", POSTER_W - Math.round(side), footY);
+
+    // Rahmen (Posterrand)
+    ctx.strokeStyle = "#1a1a1a";
+    ctx.lineJoin = "miter";
+    for (const b of borderRects(POSTER_W, POSTER_H, border)) {
+      ctx.lineWidth = b.weight;
+      ctx.strokeRect(b.x, b.y, b.w, b.h);
+    }
 
     const blob = await new Promise<Blob | null>((res) => cv.toBlob(res, "image/png"));
     if (!blob) throw new Error("PNG-Erzeugung fehlgeschlagen");

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import LocationSearch from "./LocationSearch";
 import type { Detail, Labels } from "@/lib/mapStyle";
-import { FORMATS, getFormat, type FormatId } from "@/lib/posterLayout";
+import { FORMATS, getFormat, type FormatId, type BorderStyle } from "@/lib/posterLayout";
 import type { ShapeId } from "@/lib/shapes";
 import { THEMES, type Theme, type CustomColors } from "@/lib/themes";
 import type { Place } from "@/lib/photon";
@@ -18,6 +18,12 @@ type Props = {
   orientation: Orientation;
   setOrientation: (o: Orientation) => void;
   onSelectPlace: (p: Place) => void;
+  title: string;
+  setTitle: (v: string) => void;
+  subtitle: string;
+  setSubtitle: (v: string) => void;
+  titlePlaceholder: string;
+  subtitlePlaceholder: string;
   onPreview: () => void;
   onDownloadPng: () => void;
   onDownloadPdf: () => void;
@@ -26,6 +32,8 @@ type Props = {
   setFormat: (f: FormatId) => void;
   shape: ShapeId;
   setShape: (s: ShapeId) => void;
+  border: BorderStyle;
+  setBorder: (b: BorderStyle) => void;
   themeId: string;
   setThemeId: (id: string) => void;
   customColors: CustomColors;
@@ -208,6 +216,23 @@ const IconPdf = () => (
   </svg>
 );
 
+const IconBorderNone = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="1" strokeDasharray="2.5 2.5" opacity="0.55" />
+  </svg>
+);
+const IconBorderSingle = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="0.5" />
+  </svg>
+);
+const IconBorderDouble = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+    <rect x="3" y="3" width="18" height="18" rx="0.5" />
+    <rect x="6.5" y="6.5" width="11" height="11" rx="0.5" />
+  </svg>
+);
+
 export default function Sidebar({
   detail,
   setDetail,
@@ -216,6 +241,12 @@ export default function Sidebar({
   orientation,
   setOrientation,
   onSelectPlace,
+  title,
+  setTitle,
+  subtitle,
+  setSubtitle,
+  titlePlaceholder,
+  subtitlePlaceholder,
   onPreview,
   onDownloadPng,
   onDownloadPdf,
@@ -224,6 +255,8 @@ export default function Sidebar({
   setFormat,
   shape,
   setShape,
+  border,
+  setBorder,
   themeId,
   setThemeId,
   customColors,
@@ -253,6 +286,34 @@ export default function Sidebar({
         </div>
 
         <LocationSearch onSelect={onSelectPlace} />
+
+        {/* Text / Beschriftung im Footer */}
+        <div className="mt-7">
+          <SectionTitle>Text</SectionTitle>
+          <div className="space-y-2">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={titlePlaceholder}
+              maxLength={40}
+              aria-label="Titel"
+              className="w-full rounded-lg border border-line bg-white px-3 py-2.5 text-center text-sm font-medium tracking-wide text-ink outline-none transition placeholder:font-normal placeholder:tracking-normal placeholder:text-ink/35 hover:border-ink/30 focus:border-ink/50"
+            />
+            <input
+              type="text"
+              value={subtitle}
+              onChange={(e) => setSubtitle(e.target.value)}
+              placeholder={subtitlePlaceholder}
+              maxLength={60}
+              aria-label="Untertitel"
+              className="w-full rounded-lg border border-line bg-white px-3 py-2 text-center text-sm text-ink outline-none transition placeholder:text-ink/35 hover:border-ink/30 focus:border-ink/50"
+            />
+            <p className="text-center text-[11px] leading-snug text-ink/40">
+              Leer = automatisch Stadtname &amp; Koordinaten.
+            </p>
+          </div>
+        </div>
 
         {/* Kartendetails */}
         <div className="mt-7">
@@ -290,6 +351,16 @@ export default function Sidebar({
             <OptionCard active={shape === "house"} onClick={() => setShape("house")} icon={<IconShapeHouse />} label="Haus" />
             <OptionCard active={shape === "circle"} onClick={() => setShape("circle")} icon={<IconShapeCircle />} label="Kreis" />
             <OptionCard active={false} onClick={() => {}} icon={<IconShapeBorder />} label="Grenzen" disabled badge="bald" />
+          </div>
+        </div>
+
+        {/* Rahmen */}
+        <div className="mt-7">
+          <SectionTitle>Rahmen</SectionTitle>
+          <div className="flex gap-2">
+            <OptionCard active={border === "none"} onClick={() => setBorder("none")} icon={<IconBorderNone />} label="Ohne" />
+            <OptionCard active={border === "single"} onClick={() => setBorder("single")} icon={<IconBorderSingle />} label="Einfach" />
+            <OptionCard active={border === "double"} onClick={() => setBorder("double")} icon={<IconBorderDouble />} label="Doppelt" />
           </div>
         </div>
 

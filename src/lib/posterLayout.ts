@@ -28,6 +28,28 @@ export function getFormat(id: FormatId): PosterFormat {
   return FORMATS.find((f) => f.id === id) ?? FORMATS[0];
 }
 
+export type BorderStyle = "none" | "single" | "double";
+
+// Rahmen-Linie am Posterrand, bezogen auf die kürzere Seite
+const BORDER = { inset: 0.045, gap: 0.013, weight: 0.0035 };
+
+/**
+ * Rahmen-Rechtecke (dünne Linie am Posterrand) in denselben Einheiten wie
+ * pageW/pageH. Leer = kein Rahmen. „double" = zwei verschachtelte Linien.
+ */
+export function borderRects(pageW: number, pageH: number, style: BorderStyle) {
+  if (style === "none") return [] as { x: number; y: number; w: number; h: number; weight: number }[];
+  const s = Math.min(pageW, pageH);
+  const o = s * BORDER.inset;
+  const weight = s * BORDER.weight;
+  const rects = [{ x: o, y: o, w: pageW - 2 * o, h: pageH - 2 * o, weight }];
+  if (style === "double") {
+    const g = s * BORDER.gap;
+    rects.push({ x: o + g, y: o + g, w: pageW - 2 * (o + g), h: pageH - 2 * (o + g), weight: weight * 0.7 });
+  }
+  return rects;
+}
+
 /** Seitenmaße in cm, je nach Ausrichtung. */
 export function pageDimsCm(id: FormatId, orientation: Orientation): { w: number; h: number } {
   const f = getFormat(id);

@@ -2,8 +2,10 @@ import { tileSourceUrl, type Detail, type Labels } from "./mapStyle";
 import {
   pageDimsCm,
   posterRect,
+  borderRects,
   type FormatId,
   type Orientation,
+  type BorderStyle,
 } from "./posterLayout";
 import { hasShape, maskPath, shapePath, type ShapeId } from "./shapes";
 import type { Theme } from "./themes";
@@ -19,6 +21,7 @@ type Opts = {
   coords: string;
   format: FormatId;
   shape: ShapeId;
+  border: BorderStyle;
   theme: Theme;
 };
 
@@ -87,7 +90,7 @@ function esc(s: string): string {
  * Karten-Rechteck wie die Bildschirm-Vorschau, damit das Ergebnis identisch aussieht.
  */
 export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
-  const { detail, labels, tileKey, bounds, zoom, orientation, title, coords, format, shape, theme } = opts;
+  const { detail, labels, tileKey, bounds, zoom, orientation, title, coords, format, shape, border, theme } = opts;
   if (!bounds) throw new Error("Kein Kartenausschnitt verfügbar – bitte kurz warten.");
 
   const PbfMod: any = await import("pbf");
@@ -263,6 +266,11 @@ export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
   const footY = pageH - side * 0.45;
   parts.push(`<text x="${r(side)}" y="${r(footY)}" font-family="helvetica" font-size="${r(footSize)}" fill="#9a9a9a">© OpenStreetMap-Mitwirkende</text>`);
   parts.push(`<text x="${r(pageW - side)}" y="${r(footY)}" font-family="helvetica" font-size="${r(footSize)}" fill="#9a9a9a" text-anchor="end">${cm.w} × ${cm.h} cm</text>`);
+
+  // Rahmen (Posterrand)
+  for (const b of borderRects(pageW, pageH, border)) {
+    parts.push(`<rect x="${r(b.x)}" y="${r(b.y)}" width="${r(b.w)}" height="${r(b.h)}" fill="none" stroke="#1a1a1a" stroke-width="${r(b.weight)}"/>`);
+  }
   parts.push(`</svg>`);
 
   const doc = new DOMParser().parseFromString(parts.join(""), "image/svg+xml");

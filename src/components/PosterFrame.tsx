@@ -1,18 +1,25 @@
 import type { ReactNode } from "react";
-import { LAYOUT, pageDimsCm, posterRect, type FormatId, type Orientation } from "@/lib/posterLayout";
+import { LAYOUT, pageDimsCm, posterRect, borderRects, type BorderStyle, type FormatId, type Orientation } from "@/lib/posterLayout";
 
 type Props = {
   title: string;
   coords: string;
   format: FormatId;
   orientation: Orientation;
+  border?: BorderStyle;
   enlarged?: boolean;
   children: ReactNode; // die Karte (MapCanvas) – inkl. Kartenform-Maske
 };
 
-export default function PosterFrame({ title, coords, format, orientation, enlarged, children }: Props) {
+export default function PosterFrame({ title, coords, format, orientation, border = "none", enlarged, children }: Props) {
   const { w, h } = pageDimsCm(format, orientation);
   const { rectW, rectH } = posterRect(w, h);
+  // Rahmen-Linien: Abstände als % der Seite (x → Breite, y → Höhe)
+  const frames = borderRects(w, h, border).map((rc, i) => ({
+    left: `${(rc.x / w) * 100}%`,
+    top: `${(rc.y / h) * 100}%`,
+    weight: i === 0 ? 1.5 : 1,
+  }));
 
   const maxVH = enlarged ? 90 : 82;
   const maxVW = enlarged ? 92 : 60;
@@ -49,6 +56,15 @@ export default function PosterFrame({ title, coords, format, orientation, enlarg
           </p>
         </div>
       </div>
+
+      {/* Rahmen (Posterrand) */}
+      {frames.map((f, i) => (
+        <div
+          key={i}
+          className="pointer-events-none absolute border-ink"
+          style={{ top: f.top, bottom: f.top, left: f.left, right: f.left, borderWidth: f.weight, borderStyle: "solid" }}
+        />
+      ))}
 
       {/* Pflicht-Quellenangabe */}
       <div className="pointer-events-none absolute bottom-1.5 right-3 text-[8px] tracking-wide text-ink/35">
