@@ -119,7 +119,11 @@ export default function MapCanvas({ style, center, resizeSignal, clipUnit, onMov
       <div
         ref={containerRef}
         className="h-full w-full"
-        style={clipUnit ? { clipPath: "url(#posterShapeClip)", WebkitClipPath: "url(#posterShapeClip)" } : undefined}
+        style={
+          clipUnit
+            ? { clipPath: "url(#posterShapeClip)", WebkitClipPath: "url(#posterShapeClip)" }
+            : undefined
+        }
       />
       <div className="absolute left-3 top-3 z-10 flex flex-col overflow-hidden rounded-md border border-line bg-white shadow-sm">
         <button aria-label="Hineinzoomen" className={btn} onClick={() => mapRef.current?.zoomIn()}>

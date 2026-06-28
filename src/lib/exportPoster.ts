@@ -1,6 +1,6 @@
 import type { StyleSpecification } from "maplibre-gl";
 import { pageDimsCm, posterRect, type FormatId, type Orientation } from "./posterLayout";
-import { maskPath, type ShapeId } from "./shapes";
+import { maskPath, shapePath, type ShapeId } from "./shapes";
 
 type ExportOpts = {
   style: StyleSpecification;
@@ -105,11 +105,18 @@ export async function exportPosterPng(opts: ExportOpts): Promise<void> {
     ctx.fillRect(0, 0, POSTER_W, POSTER_H);
     ctx.drawImage(mapCanvas, Math.round(side), Math.round(top), mapW, mapH);
 
-    // Kartenform: alles außerhalb der Form weiß übermalen
+    // Kartenform: alles außerhalb der Form weiß übermalen + Kontur ziehen
     const mp = maskPath(shape, Math.round(side), Math.round(top), mapW, mapH);
     if (mp) {
       ctx.fillStyle = "#ffffff";
       ctx.fill(new Path2D(mp), "evenodd");
+      const sp = shapePath(shape, Math.round(side), Math.round(top), mapW, mapH);
+      if (sp) {
+        ctx.strokeStyle = "#1a1a1a";
+        ctx.lineWidth = Math.max(1, Math.round(POSTER_W * 0.0022));
+        ctx.lineJoin = "round";
+        ctx.stroke(new Path2D(sp));
+      }
     }
 
     const serif = fontFamilyOf(".poster-title", "Georgia, 'Times New Roman', serif");

@@ -5,7 +5,7 @@ import {
   type FormatId,
   type Orientation,
 } from "./posterLayout";
-import { hasShape, maskPath, type ShapeId } from "./shapes";
+import { hasShape, maskPath, shapePath, type ShapeId } from "./shapes";
 import type { Theme } from "./themes";
 
 type Opts = {
@@ -241,9 +241,10 @@ export async function buildPosterSvg(opts: Opts): Promise<SVGSVGElement> {
   parts.push(`<rect x="0" y="${r(rectY)}" width="${r(rectX)}" height="${r(rectH)}" fill="#ffffff"/>`);
   parts.push(`<rect x="${r(rectX + rectW)}" y="${r(rectY)}" width="${r(pageW - rectX - rectW)}" height="${r(rectH)}" fill="#ffffff"/>`);
 
-  // Kartenform: Karte auf die Form ausstanzen (Rechteck mit Form als Loch, weiß)
+  // Kartenform: Karte auf die Form ausstanzen (Rechteck mit Form als Loch, weiß) + Kontur
   if (hasShape(shape)) {
     parts.push(`<path d="${maskPath(shape, rectX, rectY, rectW, rectH)}" fill="#ffffff" fill-rule="evenodd"/>`);
+    parts.push(`<path d="${shapePath(shape, rectX, rectY, rectW, rectH)}" fill="none" stroke="#1a1a1a" stroke-width="${r(0.4 * lineScale)}" stroke-linejoin="round"/>`);
   }
 
   for (const L of labelsArr) {
